@@ -227,6 +227,10 @@ session's tag.
 
 ### Workspace tools
 
+The free-plan version removes the Worker Loader binding, JavaScript
+backend, Git client, and `exec` tool. The notes below describe the previous
+execution-enabled version; only file tools are currently registered.
+
 The model's tools are computer's `createPiTools`, adapted in
 `src/workspace.ts`, not pi's own `read`/`bash`/`edit`/`write` on an
 `ExecutionEnv`. computer's set comes with the Workspace's limits, locks and

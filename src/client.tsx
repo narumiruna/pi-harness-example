@@ -13,7 +13,6 @@ import {
   CodeIcon,
   FilePlusIcon,
   GearIcon,
-  GitBranchIcon,
   MoonIcon,
   PaperPlaneRightIcon,
   PlusIcon,
@@ -44,15 +43,14 @@ const SUGGESTIONS = [
   },
   {
     icon: <CodeIcon size={15} />,
-    label: "Run JavaScript",
-    value:
-      "Use exec to run JavaScript that lists /workspace and returns the size of each file."
+    label: "List files",
+    value: "List the files in /workspace."
   },
   {
-    icon: <GitBranchIcon size={15} />,
-    label: "Clone a repo",
+    icon: <FilePlusIcon size={15} />,
+    label: "Edit a file",
     value:
-      "Clone https://github.com/octocat/Hello-World into /workspace/hello, then show its git log."
+      "Write a checklist to /workspace/tasks.txt, then edit it to mark the first task complete."
   }
 ] satisfies Array<{ icon: ReactNode; label: string; value: string }>;
 

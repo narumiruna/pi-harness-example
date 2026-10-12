@@ -44,11 +44,24 @@ Each session is its own Durable Object with its own workspace. pi fixes a
 session's active tools when it creates the session, so a session created
 before a tool was added never sees it; start a new session instead.
 
+## Deploy on the free plan
+
+```sh
+pnpm run deploy
+```
+
+This example uses SQLite-backed Durable Objects and Workers AI, subject to
+their free-plan quotas and model availability. It has no Worker Loader
+binding or Dynamic Workers, which require Workers Paid. Workspace tools
+can manage files but cannot execute JavaScript, run shell commands, or use
+Git. Start a new session after updating an older deployment so its tool
+list is refreshed.
+
 ## What to try
 
 - `Write a haiku about Durable Objects to /workspace/haiku.txt, then read it back.`
-- `Use exec to run JavaScript that lists /workspace and returns the size of each file.`
-- `Clone https://github.com/octocat/Hello-World into /workspace/hello, then show its git log.`
+- `List the files in /workspace.`
+- `Write a checklist to /workspace/tasks.txt, then edit it to mark the first task complete.`
 - While a turn runs, type and press Enter to queue a follow-up, or Steer to
   join the running turn.
 
@@ -78,17 +91,9 @@ recovers.
 export class PiAgent extends DurableObject<Env> {
   // Workers AI and AI Gateway over the AI binding, as a pi-ai provider.
   readonly ai = createAI({ binding: this.env.AI });
-  // A durable filesystem with git; `exec` runs JavaScript in a Dynamic Worker.
+  // A durable filesystem without a code execution backend.
   readonly workspace = new Workspace({
-    storage: this.ctx.storage,
-    git: createGitClient(),
-    backends: [
-      new WorkerJavaScriptBackend({
-        id: JAVASCRIPT_BACKEND,
-        loader: this.env.LOADER,
-        allowGitNetwork: true
-      })
-    ]
+    storage: this.ctx.storage
   });
   // pi's own registry: the system prompt and the workspace tools.
   readonly registry = createRegistry();
@@ -156,29 +161,18 @@ The model works in a `Workspace` from
 [`@cloudflare/computer`](https://github.com/cloudflare/computer), stored on
 the object's SQLite database beside pi's tables. Its tools come from
 `createPiTools` in `@cloudflare/computer/tools/pi-ai`: `read`, `ls`, `find`,
-`grep`, `write`, `edit`, `delete`, and `exec`. See computer's
+`grep`, `write`, `edit`, and `delete`. See computer's
 [tool interface docs](https://github.com/cloudflare/computer/blob/main/docs/09_tool_interface.md).
 
 `createPiTools` returns pi-ai declarations and one `execute`, for an agent
 loop the caller writes. pi-durable runs the loop itself, so
 `createWorkspaceTools` in `src/workspace.ts` turns each declaration into a
 `ToolRegistration` that calls `execute`. It marks `read`, `ls`, `find`,
-`grep`, `write` and `delete` replay-safe. `edit` and `exec` are not: after
-an eviction the model gets an interrupted result rather than a second run.
+`grep`, `write` and `delete` replay-safe. `edit` is not: after an eviction
+the model gets an interrupted result rather than a second run.
 
-`exec` has one backend, `WorkerJavaScriptBackend`. Each call runs an ES
-module in a fresh Dynamic Worker, minted through the `LOADER` binding, with
-no network. The module can import `node:fs/promises`, which is the
-workspace, and `ws:git`. computer's own `exec` description is written for a
-choice of shell backends, so `src/workspace.ts` replaces it with one for
-JavaScript that includes the `ws:git` TypeScript interface (`clone`,
-`status`, `diff`, `log`).
-
-Git needs two things besides the backend: `git: createGitClient()` from
-`@cloudflare/computer/git` on the `Workspace`, which needs the
-`@platformatic/vfs` peer, and `allowGitNetwork: true` on the backend for
-`clone`. Git runs in the host, through isomorphic-git on the workspace
-files, so cloning works while the module itself has no network.
+No shell options are passed to `createPiTools`, so it does not register
+`exec`. The workspace has no execution backend or Git client.
 
 ## Package sources
 
